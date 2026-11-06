@@ -58,7 +58,6 @@ def api():
 
 
 # 1. PHISHING URL CHECKER
-@app.route("/api/phishing-check", methods=["POST"])
 def phishing_check():
     data = request.get_json(silent=True) or {}
     url = data.get("url", "").strip()
@@ -83,77 +82,7 @@ def phishing_check():
             warnings.append("HTTPS is not enabled")
 
         if "@" in parsed.netloc:
-            risk += 2
-            warnings.append("Unusual URL structure")
-
-        try:
-            ipaddress.ip_address(host)
-            risk += 2
-            warnings.append("Uses an IP address instead of a domain")
-        except ValueError:
-            pass
-
-        if len(host.split(".")) > 4:
-            risk += 1
-            warnings.append("Unusual number of subdomains")
-
-        result = (
-            "Suspicious" if risk >= 3
-            else "Needs Caution" if risk >= 1
-            else "No obvious warning signs"
-        )
-
-        return jsonify({
-            "status": "success",
-            "result": result,
-            "risk_score": risk,
-            "warnings": warnings,
-            "notice": "This basic check cannot guarantee website safety."
-        })
-
-    except ValueError:
-        return jsonify({"error": "Invalid URL"}), 400
-
-
-# 2. SCAM MESSAGE DETECTOR
-@app.route("/api/scam-check", methods=["POST"])
-def scam_check():
-    data = request.get_json(silent=True) or {}
-    message = data.get("message", "").strip()
-
-    if not message or len(message) > 5000:
-        return jsonify({
-            "error": "Enter a message under 5000 characters"
-        }), 400
-
-    keywords = [
-        "urgent payment", "send otp", "share otp",
-        "account blocked", "claim your prize",
-        "you won", "click this link",
-        "send money", "upi pin",
-        "verify your account"
-    ]
-
-    found = [
-        word for word in keywords
-        if word in message.lower()
-    ]
-
-    risk = len(found)
-
-    result = (
-        "High Risk" if risk >= 3
-        else "Potentially Suspicious" if risk >= 1
-        else "No obvious scam indicators"
-    )
-
-    return jsonify({
-        "status": "success",
-        "result": result,
-        "risk_score": risk,
-        "warning_signs": found,
-        "advice": "Never share OTPs, passwords or UPI PINs."
-    })
+            
 
 
 # 3. CYBER SAFETY TIPS
