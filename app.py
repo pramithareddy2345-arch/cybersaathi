@@ -7,13 +7,6 @@ import os
 app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY", "cybersaathi-secret-key")
-
-
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
 @app.route("/api")
 def api():
     return jsonify({
