@@ -1,7 +1,8 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 @app.route("/")
-return render_template("index.html")
+def home():
+    return render_template("index.html")
 import os
 
 app = Flask(__name__)
