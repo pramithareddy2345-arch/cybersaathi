@@ -8,9 +8,12 @@ from urllib.parse import urlparse
 from datetime import datetime
 
 # Initialize Flask only once
-app = Flask(__name__)
-app.secret_key = os.environ.get(
-    "SECRET_KEY", "cybersaathi-secret-key"
+app = Flask(
+    __name__,
+    template_folder=os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "templates"
+    )
 )
 
 DATABASE = "cybersaathi.db"
