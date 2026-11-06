@@ -7,7 +7,6 @@ import uuid
 from urllib.parse import urlparse
 from datetime import datetime
 
-# Initialize Flask only once
 app = Flask(
     __name__,
     template_folder=os.path.join(
@@ -58,36 +57,98 @@ def api():
 
 
 # 1. PHISHING URL CHECKER
-from urllib.parse import urlparse
+TRUSTED_DOMAINS = {
+    "youtube.com",
+    "google.com",
+    "microsoft.com",
+    "wikipedia.org"
+}
+
 
 def scan_url(url):
     url = url.strip()
 
+    if not url or len(url) > 2048:
+        return {
+            "status": "Invalid",
+            "message": "Please enter a valid URL."
+        }
+
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
 
-    hostname = (urlparse(url).hostname or "").lower()
+    try:
+        parsed = urlparse(url)
+        hostname = (parsed.hostname or "").lower()
 
-    trusted_domains = [
-        "youtube.com",
-        "google.com",
-        "microsoft.com",
-        "wikipedia.org"
-    ]
+        if not hostname or not parsed.scheme:
+            raise ValueError("Invalid URL")
 
-    for domain in trusted_domains:
-        if hostname == domain or hostname.endswith("." + domain):
+        # Check trusted domains using exact domain matching
+        if hostname in TRUSTED_DOMAINS or any(
+            hostname.endswith("." + domain)
+            for domain in TRUSTED_DOMAINS
+        ):
             return {
                 "status": "Safe",
-                "message": "No known warning signs detected."
+                "message": "Recognized website. No known warning signs detected."
             }
 
-    # Continue with your existing suspicious URL checks here.
-    return {
-        "status": "Needs Review",
-        "message": "This URL requires further security checks."
-    }
-            
+        # Check IP-based URLs
+        try:
+            ipaddress.ip_address(hostname)
+            return {
+                "status": "Warning",
+                "message": "This URL uses an IP address. Verify it before visiting."
+            }
+        except ValueError:
+            pass
+
+        # Basic suspicious URL checks
+        suspicious_signs = []
+
+        if "@" in parsed.netloc:
+            suspicious_signs.append("Contains an unusual @ symbol.")
+
+        if hostname.startswith("xn--"):
+            suspicious_signs.append("Uses an internationalized domain name.")
+
+        if len(hostname) > 60:
+            suspicious_signs.append("Unusually long domain name.")
+
+        if parsed.scheme == "http":
+            suspicious_signs.append("Uses an unencrypted HTTP connection.")
+
+        if suspicious_signs:
+            return {
+                "status": "Warning",
+                "message": " ".join(suspicious_signs)
+            }
+
+        return {
+            "status": "Needs Review",
+            "message": "No obvious warning signs detected. This does not guarantee safety."
+        }
+
+    except Exception:
+        return {
+            "status": "Invalid",
+            "message": "Unable to analyze this URL."
+        }
+
+
+# URL SCANNER API
+@app.route("/api/scan-url", methods=["POST"])
+def scan_url_api():
+    data = request.get_json(silent=True) or {}
+    url = data.get("url", "")
+
+    if not isinstance(url, str):
+        return jsonify({"error": "Invalid URL"}), 400
+
+    result = scan_url(url)
+
+    return jsonify(result)
 
 
 # 3. CYBER SAFETY TIPS
@@ -211,7 +272,7 @@ def track_complaint(reference):
     return jsonify(dict(complaint))
 
 
-# CREATE DATABASE WHEN THE APP STARTS
+# CREATE DATABASE
 create_database()
 
 
@@ -219,4 +280,4 @@ create_database()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    
+
