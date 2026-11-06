@@ -58,30 +58,35 @@ def api():
 
 
 # 1. PHISHING URL CHECKER
-def phishing_check():
-    data = request.get_json(silent=True) or {}
-    url = data.get("url", "").strip()
+from urllib.parse import urlparse
 
-    if not url or len(url) > 2048:
-        return jsonify({"error": "Enter a valid URL"}), 400
+def scan_url(url):
+    url = url.strip()
 
-    try:
-        parsed = urlparse(
-            url if "://" in url else "https://" + url
-        )
-        host = parsed.hostname or ""
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
 
-        if parsed.scheme not in ("http", "https") or not host:
-            return jsonify({"error": "Invalid URL"}), 400
+    hostname = (urlparse(url).hostname or "").lower()
 
-        risk = 0
-        warnings = []
+    trusted_domains = [
+        "youtube.com",
+        "google.com",
+        "microsoft.com",
+        "wikipedia.org"
+    ]
 
-        if parsed.scheme == "http":
-            risk += 1
-            warnings.append("HTTPS is not enabled")
+    for domain in trusted_domains:
+        if hostname == domain or hostname.endswith("." + domain):
+            return {
+                "status": "Safe",
+                "message": "No known warning signs detected."
+            }
 
-        if "@" in parsed.netloc:
+    # Continue with your existing suspicious URL checks here.
+    return {
+        "status": "Needs Review",
+        "message": "This URL requires further security checks."
+    }
             
 
 
